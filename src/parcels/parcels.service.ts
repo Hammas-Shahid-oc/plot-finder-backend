@@ -3,6 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import { Pool } from 'pg';
 import { ParcelGeometryDto } from './dto/good-parcels-response.dto';
 
+/** 2 miles in meters */
+const TWO_MILES_METERS = 2 * 1609.344;
+
 export interface GoodParcelsResult {
   center: { lat: number; lon: number };
   radius_m: number;
@@ -36,11 +39,13 @@ export class ParcelsService implements OnModuleInit, OnModuleDestroy {
     await this.pool?.end();
   }
 
-  async getGoodParcels(
+  private async queryParcels(
     lat: number,
     lon: number,
     radius: number,
+    limit?: number,
   ): Promise<GoodParcelsResult> {
+    const limitClause = limit != null ? `LIMIT ${Math.max(1, Math.floor(limit))}` : '';
     const query = `
       SELECT
         gml_id,
@@ -54,6 +59,7 @@ export class ParcelsService implements OnModuleInit, OnModuleDestroy {
         ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 27700),
         $3
       )
+      ${limitClause}
     `;
 
     const client = await this.pool.connect();
@@ -76,5 +82,17 @@ export class ParcelsService implements OnModuleInit, OnModuleDestroy {
     } finally {
       client.release();
     }
+  }
+
+  async getGoodParcels(
+    lat: number,
+    lon: number,
+    radius: number,
+  ): Promise<GoodParcelsResult> {
+    return this.queryParcels(lat, lon, radius);
+  }
+
+  async getSampleParcels(lat: number, lon: number): Promise<GoodParcelsResult> {
+    return this.queryParcels(lat, lon, TWO_MILES_METERS);
   }
 }

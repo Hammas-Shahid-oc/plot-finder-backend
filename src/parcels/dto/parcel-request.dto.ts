@@ -25,3 +25,14 @@ export class ParcelRequestDto {
   @Type(() => Number)
   radius: number;
 }
+
+/** Request for sample-parcels: center only; radius is fixed at 2 miles. */
+export class SampleParcelsRequestDto {
+  @ApiProperty({
+    type: CenterDto,
+    description: 'Center point (lat/lng). Parcels within 2 miles of this point are returned.',
+  })
+  @ValidateNested()
+  @Type(() => CenterDto)
+  center: CenterDto;
+}

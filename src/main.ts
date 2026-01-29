@@ -7,6 +7,9 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Global prefix: all routes under /api
+  app.setGlobalPrefix('api');
+
   // Compress responses (gzip) for large payloads
   app.use(compression({ level: 8 }));
 
@@ -56,13 +59,13 @@ This API provides authentication endpoints using JWT tokens and user management 
   // Filter out NestAuth routes from Swagger documentation
   if (document.paths) {
     Object.keys(document.paths).forEach((path) => {
-      if (path.startsWith('/nestauth')) {
+      if (path.includes('nestauth')) {
         delete document.paths[path];
       }
     });
   }
 
-  SwaggerModule.setup('api', app, document, {
+  SwaggerModule.setup('api/docs', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
     },
@@ -70,6 +73,6 @@ This API provides authentication endpoints using JWT tokens and user management 
 
   await app.listen(process.env.PORT ?? 3001);
   console.log(`🚀 Application is running on: http://localhost:${process.env.PORT ?? 3001}`);
-  console.log(`📚 Swagger documentation: http://localhost:${process.env.PORT ?? 3001}/api`);
+  console.log(`📚 Swagger documentation: http://localhost:${process.env.PORT ?? 3001}/api/docs`);
 }
 bootstrap();
