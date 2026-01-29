@@ -1,7 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { join } from 'path';
 import { NestAuthModule } from '@next-nest-auth/nestauth';
+
+// Resolve .env from project root (works when running from dist/ or any cwd)
+const envPath = join(__dirname, '..', '.env');
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './users/user.module';
@@ -14,7 +18,8 @@ import { ParcelsModule } from './parcels/parcels.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: envPath,
+      ignoreEnvFile: false,
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
