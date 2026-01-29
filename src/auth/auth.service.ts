@@ -33,7 +33,7 @@ export class AuthService {
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
     // Proxy to NestAuth's login endpoint using internal HTTP call
     const port = this.configService.get('PORT', 3001);
-    const baseURL = `http://localhost:${port}`;
+    const baseURL = `http://localhost:${port}/api`;
     
     try {
       const response = await firstValueFrom(
@@ -55,7 +55,7 @@ export class AuthService {
   async refreshToken(refreshTokenDto: RefreshTokenDto): Promise<AuthResponseDto> {
     // Proxy to NestAuth's refresh token endpoint using internal HTTP call
     const port = this.configService.get('PORT', 3001);
-    const baseURL = `http://localhost:${port}`;
+    const baseURL = `http://localhost:${port}/api`;
     
     try {
       const response = await firstValueFrom(
