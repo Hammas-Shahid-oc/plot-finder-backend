@@ -8,6 +8,7 @@ import { UserModule } from './users/user.module';
 import { UserService } from './users/user.service';
 import { User } from './users/entities/user.entity';
 import { AuthModule } from './auth/auth.module';
+import { ParcelsModule } from './parcels/parcels.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { AuthModule } from './auth/auth.module';
       jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1h',
     }),
     AuthModule,
+    ParcelsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
