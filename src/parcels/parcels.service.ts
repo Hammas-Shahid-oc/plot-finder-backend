@@ -54,7 +54,6 @@ export class ParcelsService implements OnModuleInit, OnModuleDestroy {
         ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 27700),
         $3
       )
-      LIMIT 2000;
     `;
 
     const client = await this.pool.connect();
