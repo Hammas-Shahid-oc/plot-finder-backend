@@ -11,6 +11,7 @@ import { AppService } from './app.service';
 import { UserModule } from './users/user.module';
 import { UserService } from './users/user.service';
 import { User } from './users/entities/user.entity';
+import { GetGoodParcels } from './parcels/entities/get-good-parcels.entity';
 import { AuthModule } from './auth/auth.module';
 import { ParcelsModule } from './parcels/parcels.module';
 
@@ -30,8 +31,9 @@ import { ParcelsModule } from './parcels/parcels.module';
         username: configService.get('DB_USERNAME', 'postgres'),
         password: configService.get('DB_PASSWORD', 'postgres'),
         database: configService.get('DB_NAME', 'plot_finder'),
-        entities: [User],
-        synchronize: configService.get('DB_SYNCHRONIZE', 'true') === 'true' || true,
+        entities: [User, GetGoodParcels],
+        synchronize:
+          configService.get('DB_SYNCHRONIZE', 'true') === 'true' || true,
         logging: configService.get('DB_LOGGING', 'false') === 'true',
       }),
       inject: [ConfigService],
