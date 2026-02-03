@@ -13,9 +13,12 @@ export class GetGoodParcels {
 
   @Column({
     type: 'geometry',
-    srid: 4326,
+    srid: 27700,
   })
   geometry: string;
+
+  @Column({ type: 'jsonb' })
+  geometry_geojson: any;
 
   @Column({ type: 'boolean', default: false })
   isInGreenBelt: boolean;

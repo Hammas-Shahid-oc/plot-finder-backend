@@ -11,7 +11,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   // Compress responses (gzip) for large payloads
-  app.use(compression({ level: 8 }));
+  app.use(compression({ level: 6 }));
 
   // Enable validation pipes globally
   app.useGlobalPipes(
@@ -55,7 +55,7 @@ This API provides authentication endpoints using JWT tokens and user management 
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  
+
   // Filter out NestAuth routes from Swagger documentation
   if (document.paths) {
     Object.keys(document.paths).forEach((path) => {
@@ -72,7 +72,11 @@ This API provides authentication endpoints using JWT tokens and user management 
   });
 
   await app.listen(process.env.PORT ?? 3001);
-  console.log(`🚀 Application is running on: http://localhost:${process.env.PORT ?? 3001}`);
-  console.log(`📚 Swagger documentation: http://localhost:${process.env.PORT ?? 3001}/api/docs`);
+  console.log(
+    `🚀 Application is running on: http://localhost:${process.env.PORT ?? 3001}`,
+  );
+  console.log(
+    `📚 Swagger documentation: http://localhost:${process.env.PORT ?? 3001}/api/docs`,
+  );
 }
 bootstrap();
