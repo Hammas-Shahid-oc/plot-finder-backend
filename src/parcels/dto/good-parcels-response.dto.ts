@@ -6,9 +6,9 @@ export interface ParcelGeometryDto {
   coordinates: number[] | number[][] | number[][][] | number[][][][];
 }
 
-class ParcelItemDto {
-  @ApiProperty({ example: 'parcel_123' })
-  gml_id: string;
+export class ParcelItemDto {
+  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
+  id: string;
 
   @ApiProperty({ example: 1234.56 })
   parcelarea: number;
@@ -16,11 +16,17 @@ class ParcelItemDto {
   @ApiProperty({ example: 500.25 })
   freearea: number;
 
-  @ApiProperty({ example: 40.5 })
-  free_pct: number;
-
   @ApiProperty({ description: 'GeoJSON geometry (WGS84)' })
   geometry: ParcelGeometryDto;
+
+  @ApiProperty({ example: true })
+  isInGreenBelt: boolean;
+
+  @ApiProperty({ example: true })
+  isInBuiltUpArea: boolean;
+
+  @ApiProperty({ example: true })
+  isInConservationArea: boolean;
 }
 
 export class GoodParcelsResponseDto {
@@ -45,6 +51,17 @@ export class GoodParcelsResponseDto {
   @ApiProperty({
     type: [ParcelItemDto],
     description: 'List of parcels within the radius',
+  })
+  parcels: ParcelItemDto[];
+}
+
+export class ParcelsByIdsResponseDto {
+  @ApiProperty({ example: 5, description: 'Number of parcels returned' })
+  count: number;
+
+  @ApiProperty({
+    type: [ParcelItemDto],
+    description: 'List of parcels matching the requested IDs',
   })
   parcels: ParcelItemDto[];
 }

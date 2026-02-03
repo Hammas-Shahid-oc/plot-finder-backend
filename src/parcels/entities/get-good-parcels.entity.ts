@@ -2,8 +2,8 @@ import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('get_good_parcels')
 export class GetGoodParcels {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({ type: 'decimal', precision: 12, scale: 2 })
   parcelArea: number;

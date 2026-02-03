@@ -21,7 +21,11 @@ import {
   ParcelRequestDto,
   SampleParcelsRequestDto,
 } from './dto/parcel-request.dto';
-import { GoodParcelsResponseDto } from './dto/good-parcels-response.dto';
+import {
+  GoodParcelsResponseDto,
+  ParcelsByIdsResponseDto,
+} from './dto/good-parcels-response.dto';
+import { ParcelsByIdsRequestDto } from './dto/parcels-by-ids.dto';
 
 @ApiTags('parcels')
 @Controller()
@@ -77,6 +81,47 @@ export class ParcelsController {
     }
   }
 
+  @Post('parcels-by-ids')
+  @UseGuards(NestAuthJwtGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get parcels by IDs',
+    description:
+      'Returns parcels from get_good_parcels for the given plot IDs (UUIDs). Requires authentication.',
+  })
+  @ApiOkResponse({
+    description: 'Parcels retrieved successfully',
+    type: ParcelsByIdsResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Validation error (invalid or empty plotIds)',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized – valid JWT required',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Database error',
+  })
+  async getParcelsByIds(
+    @Body() dto: ParcelsByIdsRequestDto,
+  ): Promise<ParcelsByIdsResponseDto> {
+    this.logger.log(`Fetching parcels by ${dto.plotIds.length} IDs`);
+
+    try {
+      const result = await this.parcelsService.getParcelsByIds(dto.plotIds);
+      this.logger.log(`Found ${result.count} parcels`);
+      return result;
+    } catch (error) {
+      this.logger.error('Database error', error);
+      throw new HttpException(
+        `Database error: ${error instanceof Error ? error.message : error}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Post('sample-parcels')
   @ApiOperation({
     summary: 'Get sample parcels (2 mile radius)',
@@ -108,6 +153,34 @@ export class ParcelsController {
       const result = await this.parcelsService.getSampleParcels(lat, lon);
       this.logger.log(`Found ${result.count} sample parcels`);
       return result;
+    } catch (error) {
+      this.logger.error('Database error', error);
+      throw new HttpException(
+        `Database error: ${error instanceof Error ? error.message : error}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('populate-get-good-parcels')
+  @ApiOperation({
+    summary: 'Populate get_good_parcels table',
+    description:
+      'Populates the get_good_parcels table with the good_parcels table. Requires authentication.',
+  })
+  @ApiOkResponse({
+    description: 'Get good parcels table populated successfully',
+  })
+  @ApiBadRequestResponse({
+    description: 'Validation error (invalid center)',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Database error',
+  })
+  async populateGetGoodParcels(): Promise<{ inserted: number }> {
+    try {
+      return await this.parcelsService.populateGetGoodParcels();
     } catch (error) {
       this.logger.error('Database error', error);
       throw new HttpException(

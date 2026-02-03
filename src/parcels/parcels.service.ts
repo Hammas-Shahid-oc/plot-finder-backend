@@ -18,11 +18,13 @@ export interface GoodParcelsResult {
   radius_m: number;
   count: number;
   parcels: Array<{
-    gml_id: string;
+    id: string;
     parcelarea: number;
     freearea: number;
-    free_pct: number;
     geometry: ParcelGeometryDto;
+    isInGreenBelt: boolean;
+    isInBuiltUpArea: boolean;
+    isInConservationArea: boolean;
   }>;
 }
 
@@ -37,7 +39,7 @@ export class ParcelsService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    // this.pool = new Pool({
+    // this.pool = new Pool({ll
     this.pool = new Pool({
       // host: this.configService.get('PARCELS_DB_HOST', 'localhost'),
       host: 'localhost',
@@ -51,7 +53,6 @@ export class ParcelsService implements OnModuleInit, OnModuleDestroy {
       ),
     });
   }
-  1;
 
   async onModuleDestroy() {
     await this.pool?.end();
@@ -89,10 +90,10 @@ export class ParcelsService implements OnModuleInit, OnModuleDestroy {
       const result = await client.query(query, [lon, lat, radiusMeters]);
 
       const parcels = result.rows.map((r) => ({
-        id: r.id.toString(),
-        parcelarea: r.parcelArea,
-        freearea: r.freeArea,
-        geometry: r.geometry_geojson as ParcelGeometryDto, // already JSON, 6 decimals
+        id: String(r.id),
+        parcelarea: Number(r.parcelArea),
+        freearea: Number(r.freeArea),
+        geometry: r.geometry_geojson as ParcelGeometryDto,
         isInGreenBelt: r.isInGreenBelt,
         isInBuiltUpArea: r.isInBuiltUpArea,
         isInConservationArea: r.isInConservationArea,
@@ -121,9 +122,117 @@ export class ParcelsService implements OnModuleInit, OnModuleDestroy {
     return this.queryParcels(lat, lon, TWO_MILES_METERS);
   }
 
+  async getParcelsByIds(plotIds: string[]): Promise<{
+    count: number;
+    parcels: GoodParcelsResult['parcels'];
+  }> {
+    if (plotIds.length === 0) {
+      return { count: 0, parcels: [] };
+    }
+
+    const query = `
+      SELECT
+        id,
+        "parcelArea",
+        "freeArea",
+        geometry_geojson,
+        "isInGreenBelt",
+        "isInBuiltUpArea",
+        "isInConservationArea"
+      FROM public.get_good_parcels
+      WHERE id = ANY($1::uuid[])
+    `;
+
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(query, [plotIds]);
+
+      const parcels = result.rows.map((r) => ({
+        id: String(r.id),
+        parcelarea: Number(r.parcelArea),
+        freearea: Number(r.freeArea),
+        geometry: r.geometry_geojson as ParcelGeometryDto,
+        isInGreenBelt: r.isInGreenBelt,
+        isInBuiltUpArea: r.isInBuiltUpArea,
+        isInConservationArea: r.isInConservationArea,
+      }));
+
+      return {
+        count: parcels.length,
+        parcels,
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Ensures conservation_areas table exists and is populated from geometry.ts.
+   * Uses PostGIS for fast spatial intersection checks. Caches in DB to avoid
+   * re-loading the large GeoJSON on every run.
+   */
+  private async ensureConservationAreasTable(): Promise<void> {
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS conservation_areas (
+        id SERIAL PRIMARY KEY,
+        geometry geometry(Geometry, 27700)
+      )
+    `);
+
+    const countResult = await this.pool.query(
+      'SELECT COUNT(*) AS cnt FROM conservation_areas',
+    );
+    const count = Number(countResult.rows[0]?.cnt ?? 0);
+
+    if (count > 0) {
+      this.logger.log(`Conservation areas table already has ${count} polygons`);
+      return;
+    }
+
+    this.logger.log('Loading conservation areas from geometry.ts...');
+    const loadStart = Date.now();
+    const { conservationAreas } = await import('./assets/geometry.js');
+    this.logger.log(
+      `Loaded GeoJSON in ${((Date.now() - loadStart) / 1000).toFixed(1)}s`,
+    );
+
+    const features = conservationAreas?.features ?? [];
+    if (features.length === 0) {
+      this.logger.warn('No conservation area features found');
+      return;
+    }
+
+    // Bulk insert using jsonb - single query, very fast
+    const geoJson = JSON.stringify(conservationAreas);
+    await this.pool.query(
+      `
+      INSERT INTO conservation_areas (geometry)
+      SELECT ST_Transform(
+        ST_SetSRID(ST_GeomFromGeoJSON(feat->'geometry'), 4326),
+        27700
+      )
+      FROM jsonb_array_elements($1::jsonb->'features') AS feat
+      WHERE feat->'geometry' IS NOT NULL
+      `,
+      [geoJson],
+    );
+
+    await this.pool.query(
+      'CREATE INDEX IF NOT EXISTS idx_conservation_areas_geom ON conservation_areas USING GIST (geometry)',
+    );
+
+    const inserted = (
+      await this.pool.query('SELECT COUNT(*) AS cnt FROM conservation_areas')
+    ).rows[0]?.cnt;
+    this.logger.log(
+      `Inserted ${inserted} conservation area polygons with GIST index`,
+    );
+  }
+
   /**
    * Reads data from good_parcels table, transforms it (SRID 27700 → 4326,
-   * 2 decimal places for areas, booleans default false), and populates get_good_parcels.
+   * 2 decimal places for areas), sets isInGreenBelt/isInBuiltUpArea to true,
+   * and isInConservationArea based on polygon intersection with conservation areas.
    */
   async populateGetGoodParcels(): Promise<{ inserted: number }> {
     const BATCH_SIZE = 10000; // 10k rows per batch
@@ -133,10 +242,15 @@ export class ParcelsService implements OnModuleInit, OnModuleDestroy {
 
     this.logger.log('Starting populateGetGoodParcels in same DB (pool)...');
 
-    // Create target table if not exists
+    // Ensure conservation areas are loaded for spatial intersection
+    await this.ensureConservationAreasTable();
+
+    // Drop and recreate target table to ensure UUID schema (id was numeric before)
+    this.logger.log('Dropping and recreating get_good_parcels with UUID id...');
+    await this.pool.query('DROP TABLE IF EXISTS get_good_parcels');
     await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS get_good_parcels (
-        id SERIAL PRIMARY KEY,
+      CREATE TABLE get_good_parcels (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         "parcelArea" NUMERIC,
         "freeArea" NUMERIC,
         geometry geometry(Geometry, 27700),
@@ -147,10 +261,8 @@ export class ParcelsService implements OnModuleInit, OnModuleDestroy {
       )
     `);
 
-    // Truncate target table first
-    this.logger.log('Truncating get_good_parcels...');
-    await this.pool.query('TRUNCATE TABLE get_good_parcels RESTART IDENTITY');
-    this.logger.log('Table truncated');
+    this.logger.log('Truncating get_good_parcels (just in case)...');
+    await this.pool.query('TRUNCATE TABLE get_good_parcels');
 
     // Find max id in source table
     const maxIdResult = await this.pool.query(
@@ -178,14 +290,18 @@ export class ParcelsService implements OnModuleInit, OnModuleDestroy {
               SELECT
                 ROUND(parcelarea::numeric, 2),
                 ROUND(freearea::numeric, 2),
-                geometry,
-                ST_AsGeoJSON(ST_Transform(geometry, 4326), 6)::jsonb,
-                false,
-                false,
-                false
-              FROM public.good_parcels
-              WHERE id > $1 AND id <= $2
-              ORDER BY id
+                gp.geometry,
+                ST_AsGeoJSON(ST_Transform(gp.geometry, 4326), 6)::jsonb,
+                true,
+                true,
+                EXISTS (
+                  SELECT 1 FROM conservation_areas ca
+                  WHERE ST_Intersects(gp.geometry, ca.geometry)
+                  LIMIT 1
+                )
+              FROM public.good_parcels gp
+              WHERE gp.id > $1 AND gp.id <= $2
+              ORDER BY gp.id
               `,
               [batchStartId, batchEndId],
             );
@@ -209,6 +325,11 @@ export class ParcelsService implements OnModuleInit, OnModuleDestroy {
         `Total inserted so far: ${totalInserted} rows (elapsed: ${elapsedSec}s)`,
       );
     }
+
+    this.logger.log('Creating GIST index on geometry for spatial queries...');
+    await this.pool.query(
+      'CREATE INDEX IF NOT EXISTS idx_get_good_parcels_geometry ON get_good_parcels USING GIST (geometry)',
+    );
 
     const elapsedSec = ((Date.now() - startTime) / 1000).toFixed(1);
     this.logger.log(

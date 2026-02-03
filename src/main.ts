@@ -52,6 +52,8 @@ This API provides authentication endpoints using JWT tokens and user management 
     .addTag('users', 'User management endpoints')
     .addTag('health', 'Health check endpoints')
     .addTag('parcels', 'Good parcels (spatial search)')
+    .addTag('plot-lists', 'Plot list collections for categorizing plots')
+    .addTag('saved-plots', 'Saved plots within plot lists')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
