@@ -41,12 +41,12 @@ export class ParcelsService implements OnModuleInit, OnModuleDestroy {
   onModuleInit() {
     // this.pool = new Pool({ll
     this.pool = new Pool({
-      // host: this.configService.get('PARCELS_DB_HOST', 'localhost'),
-      host: 'localhost',
+      host: this.configService.get('PARCELS_DB_HOST', 'localhost'),
+      // host: 'localhost',
       port: this.configService.get('PARCELS_DB_PORT', 5432),
       user: this.configService.get('PARCELS_DB_USERNAME', 'postgres'),
-      // password: this.configService.get('PARCELS_DB_PASSWORD', 'postgres'),
-      password: 'postgres',
+      password: this.configService.get('PARCELS_DB_PASSWORD', 'postgres'),
+      // password: 'postgres',
       database: this.configService.get(
         'PARCELS_DB_NAME',
         'good_parcels_england',
