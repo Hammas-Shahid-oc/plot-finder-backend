@@ -9,6 +9,7 @@ import { SavedPlot } from './entities/saved-plot.entity';
 import { PlotList } from './entities/plot-list.entity';
 import { CreateSavedPlotDto } from './dto/create-saved-plot.dto';
 import { UpdateSavedPlotDto } from './dto/update-saved-plot.dto';
+import { GoodParcelsResult, ParcelsService } from 'src/parcels/parcels.service';
 
 @Injectable()
 export class SavedPlotsService {
@@ -17,6 +18,7 @@ export class SavedPlotsService {
     private readonly savedPlotRepository: Repository<SavedPlot>,
     @InjectRepository(PlotList)
     private readonly plotListRepository: Repository<PlotList>,
+    private readonly parcelsService: ParcelsService,
   ) {}
 
   private async ensurePlotListOwnedByUser(
@@ -66,10 +68,9 @@ export class SavedPlotsService {
     });
   }
 
-  async findOne(userId: number, id: number): Promise<SavedPlot> {
+  async findOne(userId: number, id: number) {
     const savedPlot = await this.savedPlotRepository.findOne({
       where: { id },
-      relations: ['plotList'],
     });
     if (!savedPlot) {
       throw new NotFoundException('Saved plot not found');
@@ -77,7 +78,14 @@ export class SavedPlotsService {
     if (savedPlot.plotList.userId !== userId) {
       throw new ForbiddenException('Access denied');
     }
-    return savedPlot;
+    const parcelResult = await this.parcelsService.getParcelsByIds([
+      savedPlot.plotId,
+    ]);
+    if (parcelResult.count === 0) {
+      throw new NotFoundException('Plot not found');
+    }
+    savedPlot['parcel'] = parcelResult.parcels[0];
+    return savedPlot as SavedPlot & { parcel: GoodParcelsResult['parcels'][0] };
   }
 
   async update(

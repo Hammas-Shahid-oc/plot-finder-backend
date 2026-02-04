@@ -23,6 +23,7 @@ import { SavedPlotsService } from './saved-plots.service';
 import { CreateSavedPlotDto } from './dto/create-saved-plot.dto';
 import { UpdateSavedPlotDto } from './dto/update-saved-plot.dto';
 import { SavedPlot } from './entities/saved-plot.entity';
+import { GoodParcelsResult } from 'src/parcels/parcels.service';
 
 @ApiTags('saved-plots')
 @Controller('saved-plots')
@@ -70,7 +71,10 @@ export class SavedPlotsController {
   @ApiOkResponse({ description: 'Saved plot' })
   @ApiNotFoundResponse({ description: 'Saved plot not found' })
   @ApiForbiddenResponse({ description: 'Access denied' })
-  async findOne(@Request() req, @Param('id') id: string): Promise<SavedPlot> {
+  async findOne(
+    @Request() req,
+    @Param('id') id: string,
+  ): Promise<SavedPlot & { parcel: GoodParcelsResult['parcels'][0] }> {
     return this.savedPlotsService.findOne(req.user.sub, parseInt(id, 10));
   }
 

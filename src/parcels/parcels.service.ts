@@ -191,7 +191,7 @@ export class ParcelsService implements OnModuleInit, OnModuleDestroy {
 
     this.logger.log('Loading conservation areas from geometry.ts...');
     const loadStart = Date.now();
-    const { conservationAreas } = await import('./assets/geometry.js');
+    const { conservationAreas } = { conservationAreas: { features: [] } }; // TODO: replace with actual path like * await import('./assets/geometry.js') *
     this.logger.log(
       `Loaded GeoJSON in ${((Date.now() - loadStart) / 1000).toFixed(1)}s`,
     );
@@ -292,7 +292,7 @@ export class ParcelsService implements OnModuleInit, OnModuleDestroy {
                 ROUND(freearea::numeric, 2),
                 gp.geometry,
                 ST_AsGeoJSON(ST_Transform(gp.geometry, 4326), 6)::jsonb,
-                true,
+                false,
                 true,
                 EXISTS (
                   SELECT 1 FROM conservation_areas ca
