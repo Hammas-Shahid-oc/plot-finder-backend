@@ -71,6 +71,7 @@ export class SavedPlotsService {
   async findOne(userId: number, id: number) {
     const savedPlot = await this.savedPlotRepository.findOne({
       where: { id },
+      relations: ['plotList'],
     });
     if (!savedPlot) {
       throw new NotFoundException('Saved plot not found');
