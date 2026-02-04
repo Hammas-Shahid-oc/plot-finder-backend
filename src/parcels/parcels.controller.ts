@@ -162,31 +162,31 @@ export class ParcelsController {
     }
   }
 
-  @Post('populate-get-good-parcels')
-  @ApiOperation({
-    summary: 'Populate get_good_parcels table',
-    description:
-      'Populates the get_good_parcels table with the good_parcels table. Requires authentication.',
-  })
-  @ApiOkResponse({
-    description: 'Get good parcels table populated successfully',
-  })
-  @ApiBadRequestResponse({
-    description: 'Validation error (invalid center)',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Database error',
-  })
-  async populateGetGoodParcels(): Promise<{ inserted: number }> {
-    try {
-      return await this.parcelsService.populateGetGoodParcels();
-    } catch (error) {
-      this.logger.error('Database error', error);
-      throw new HttpException(
-        `Database error: ${error instanceof Error ? error.message : error}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
+  // @Post('populate-get-good-parcels')
+  // @ApiOperation({
+  //   summary: 'Populate get_good_parcels table',
+  //   description:
+  //     'Populates the get_good_parcels table with the good_parcels table. Requires authentication.',
+  // })
+  // @ApiOkResponse({
+  //   description: 'Get good parcels table populated successfully',
+  // })
+  // @ApiBadRequestResponse({
+  //   description: 'Validation error (invalid center)',
+  // })
+  // @ApiResponse({
+  //   status: 500,
+  //   description: 'Database error',
+  // })
+  // async populateGetGoodParcels(): Promise<{ inserted: number }> {
+  //   try {
+  //     return await this.parcelsService.populateGetGoodParcels();
+  //   } catch (error) {
+  //     this.logger.error('Database error', error);
+  //     throw new HttpException(
+  //       `Database error: ${error instanceof Error ? error.message : error}`,
+  //       HttpStatus.INTERNAL_SERVER_ERROR,
+  //     );
+  //   }
+  // }
 }

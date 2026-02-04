@@ -110,31 +110,31 @@ export class UserController {
     return await this.userService.updateUser(req.user.sub, updateUserDto);
   }
 
-  @Post('seed')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Seed database with test user',
-    description:
-      'Creates a test user in the database for testing purposes. Email: test@example.com, Password: password123',
-  })
-  @ApiOkResponse({
-    description: 'Database seeded successfully',
-    type: SeedResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-  })
-  async seedDatabase() {
-    const user = await this.seedService.seedUsers();
-    return {
-      message: 'Database seeded successfully',
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-      },
-    };
-  }
+  // @Post('seed')
+  // @HttpCode(HttpStatus.OK)
+  // @ApiOperation({
+  //   summary: 'Seed database with test user',
+  //   description:
+  //     'Creates a test user in the database for testing purposes. Email: test@example.com, Password: password123',
+  // })
+  // @ApiOkResponse({
+  //   description: 'Database seeded successfully',
+  //   type: SeedResponseDto,
+  // })
+  // @ApiResponse({
+  //   status: 500,
+  //   description: 'Internal server error',
+  // })
+  // async seedDatabase() {
+  //   const user = await this.seedService.seedUsers();
+  //   return {
+  //     message: 'Database seeded successfully',
+  //     user: {
+  //       id: user.id,
+  //       email: user.email,
+  //       firstName: user.firstName,
+  //       lastName: user.lastName,
+  //     },
+  //   };
+  // }
 }
