@@ -6,9 +6,10 @@ import { PlotListsController } from './plot-lists.controller';
 import { PlotListsService } from './plot-lists.service';
 import { SavedPlotsController } from './saved-plots.controller';
 import { SavedPlotsService } from './saved-plots.service';
+import { ParcelsModule } from 'src/parcels/parcels.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([PlotList, SavedPlot])],
+  imports: [TypeOrmModule.forFeature([PlotList, SavedPlot]), ParcelsModule],
   controllers: [PlotListsController, SavedPlotsController],
   providers: [PlotListsService, SavedPlotsService],
 })
