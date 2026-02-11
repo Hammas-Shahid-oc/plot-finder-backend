@@ -45,11 +45,11 @@ export class SavedPlotsService {
       plotId: dto.plotId,
       address: dto.address,
     });
-    return this.savedPlotRepository.save(savedPlot);
+    return await this.savedPlotRepository.save(savedPlot);
   }
 
   async findAll(userId: number): Promise<SavedPlot[]> {
-    return this.savedPlotRepository.find({
+    return await this.savedPlotRepository.find({
       where: { plotList: { userId } },
       relations: ['plotList'],
       order: { createdAt: 'DESC' },
@@ -62,23 +62,19 @@ export class SavedPlotsService {
   ): Promise<SavedPlot[]> {
     await this.ensurePlotListOwnedByUser(userId, plotListId);
 
-    return this.savedPlotRepository.find({
+    return await this.savedPlotRepository.find({
       where: { plotListId },
       order: { createdAt: 'DESC' },
     });
   }
 
   async findOne(userId: number, id: number) {
+    console.log('service id', id);
     const savedPlot = await this.savedPlotRepository.findOne({
-      where: { id },
+      where: { id, plotList: { userId } },
       relations: ['plotList'],
     });
-    if (!savedPlot) {
-      throw new NotFoundException('Saved plot not found');
-    }
-    if (savedPlot.plotList.userId !== userId) {
-      throw new ForbiddenException('Access denied');
-    }
+    if (!savedPlot) throw new NotFoundException('Saved plot not found');
     const parcelResult = await this.parcelsService.getParcelsByIds([
       savedPlot.plotId,
     ]);
@@ -103,7 +99,7 @@ export class SavedPlotsService {
     if (dto.plotId != null) savedPlot.plotId = dto.plotId;
     if (dto.address != null) savedPlot.address = dto.address;
 
-    return this.savedPlotRepository.save(savedPlot);
+    return await this.savedPlotRepository.save(savedPlot);
   }
 
   async remove(userId: number, id: number): Promise<void> {

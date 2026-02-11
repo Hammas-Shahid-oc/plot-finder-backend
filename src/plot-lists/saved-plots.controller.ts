@@ -75,6 +75,8 @@ export class SavedPlotsController {
     @Request() req,
     @Param('id') id: string,
   ): Promise<SavedPlot & { parcel: GoodParcelsResult['parcels'][0] }> {
+    console.log('controller id', id);
+
     return this.savedPlotsService.findOne(req.user.sub, parseInt(id, 10));
   }
 
